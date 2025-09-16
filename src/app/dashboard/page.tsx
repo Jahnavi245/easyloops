@@ -4,12 +4,11 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { SimpleHeader } from '@/shared/components';
 import { useAuth } from '@/features/auth';
-
-interface CompletedQuestion {
-  id: string;
-  title: string;
-  completedAt: string;
-}
+import {
+  CompletedQuestion,
+  getCompletedQuestions,
+  calculateStats,
+} from '@/services/questionService';
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
@@ -17,6 +16,11 @@ export default function DashboardPage() {
     CompletedQuestion[]
   >([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalCompleted: 0,
+    averageScore: 0,
+    streak: 0,
+  });
 
   useEffect(() => {
     // Only fetch completed questions if user is logged in
@@ -27,22 +31,9 @@ export default function DashboardPage() {
 
   const fetchCompletedQuestions = async () => {
     try {
-      // TODO: Replace with actual API call to fetch completed questions
-      // This is a mock implementation
-      const mockData = [
-        {
-          id: '1',
-          title: 'Variables and Data Types',
-          completedAt: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          title: 'Control Flow',
-          completedAt: new Date().toISOString(),
-        },
-      ];
-
-      setCompletedQuestions(mockData);
+      const questions = await getCompletedQuestions();
+      setCompletedQuestions(questions);
+      setStats(calculateStats(questions));
       setIsLoading(false);
     } catch (error) {
       console.error('Failed to fetch completed questions:', error);
@@ -112,9 +103,16 @@ export default function DashboardPage() {
                       >
                         {question.title}
                       </Link>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {question.category} • {question.difficulty} • Score:{' '}
+                        {question.score}%
+                      </p>
                       <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                         Completed on{' '}
                         {new Date(question.completedAt).toLocaleDateString()}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                        {question.description}
                       </p>
                     </div>
                     <Link
@@ -136,21 +134,19 @@ export default function DashboardPage() {
                 <p className="text-sm text-blue-600 dark:text-blue-400">
                   Total Completed
                 </p>
-                <p className="text-2xl font-bold">
-                  {completedQuestions.length}
-                </p>
+                <p className="text-2xl font-bold">{stats.totalCompleted}</p>
               </div>
               <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                 <p className="text-sm text-green-600 dark:text-green-400">
-                  Success Rate
+                  Average Score
                 </p>
-                <p className="text-2xl font-bold">100%</p>
+                <p className="text-2xl font-bold">{stats.averageScore}%</p>
               </div>
               <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                 <p className="text-sm text-purple-600 dark:text-purple-400">
-                  Streak
+                  Current Streak
                 </p>
-                <p className="text-2xl font-bold">1 day</p>
+                <p className="text-2xl font-bold">{stats.streak} days</p>
               </div>
             </div>
           </div>
